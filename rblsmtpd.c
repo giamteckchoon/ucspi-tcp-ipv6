@@ -60,16 +60,54 @@ static stralloc tmp;
 
 void rbl(char *base)
 {
+  int i;
+  char *altreply = 0;
   if (decision) return;
   if (!stralloc_copy(&tmp,&ip_reverse)) nomem();
+  i = str_chr(base, ':');
+  if (base[i]) {
+    base[i] = 0;
+    altreply = base+i+1;
+  }
   if (!stralloc_cats(&tmp,base)) nomem();
-  if (dns_txt(&text,&tmp) == -1) {
-    flagmustnotbounce = 1;
-    if (flagfailclosed) {
-      if (!stralloc_copys(&text,"temporary RBL lookup error")) nomem();
-      decision = 2;
+  if (altreply) {
+    if (dns_ip4(&text,&tmp) == -1) {
+      flagmustnotbounce = 1;
+      if (flagfailclosed) {
+        if (!stralloc_copys(&text,"temporary RBL lookup error")) nomem();
+        decision = 2;
+      }
+      return;
     }
-    return;
+    if (text.len) {
+      if(!stralloc_copys(&text, "")) nomem();
+      while(*altreply) {
+        char *x;
+        i = str_chr(altreply, '%');
+        if(!stralloc_catb(&text, altreply, i)) nomem();
+        if(altreply[i] &&
+           altreply[i+1]=='I' &&
+           altreply[i+2]=='P' &&
+           altreply[i+3]=='%') {
+          if(!stralloc_catb(&text, ip_env, str_len(ip_env))) nomem();
+          altreply+=i+4;
+        } else if(altreply[i]) {
+          if(!stralloc_cats(&text, "%")) nomem();
+          altreply+=i+1;
+        } else {
+          altreply+=i;
+        }
+      }
+    }
+  } else {
+    if (dns_txt(&text,&tmp) == -1) {
+      flagmustnotbounce = 1;
+      if (flagfailclosed) {
+        if (!stralloc_copys(&text,"temporary RBL lookup error")) nomem();
+        decision = 2;
+      }
+      return;
+    }
   }
   if (text.len)
     if (flagrblbounce)
