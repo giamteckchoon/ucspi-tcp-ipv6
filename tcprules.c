@@ -6,6 +6,7 @@
 #include "fmt.h"
 #include "byte.h"
 #include "cdb_make.h"
+#include "scan.h"
 
 #define FATAL "tcprules: fatal: "
 
