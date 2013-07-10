@@ -128,6 +128,7 @@ int main(int argc,char **argv)
     for (;;) {
       int tmp;
       tmp = byte_chr(x + colon,len - colon,':');
+      if (tmp == (len - colon)) die_bad();
       colon += tmp;
       if (colon == len) continue;
       if (byte_equal(x+colon+1,4,"deny") || byte_equal(x+colon+1,5,"allow")) break;
